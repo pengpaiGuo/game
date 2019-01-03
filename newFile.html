@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        #box .item {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            margin: 5px;
+            border: 1px solid gray;
+            text-align: center;
+            transition: all .3s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #box .item.start {
+            background-color: rgb(235, 15, 15) !important;
+        }
+
+        #box .item.active {
+            background-color: #faa !important;
+        }
+
+        #box .item.block {
+            background-color: #afa;
+        }
+
+        #box .item.none {
+            background-color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <h4>饶阳一笔画破解</h4>
+    行列：<input id="row" value="6" type="number" style="width: 50px;">*<input id="col" value="6" type="number" style="width: 50px;">
+    <button id="createBtn">生成地图</button>
+    <button id="startBtn">开始破解</button>
+    <div id="box"></div>
+    <ol>
+        <li>输入行和列数，点击生成地图</li>
+        <li>左键设置空格子，双击设置起始点</li>
+        <li>点击开始破解</li>
+        <li>然后你就通关咯 😝</li>
+    </ol>
+    <script>
+        const $box = document.getElementById('box'),
+            $row = document.getElementById('row'),
+            $col = document.getElementById('col'),
+            $createBtn = document.getElementById('createBtn'),
+            $startBtn = document.getElementById('startBtn');
+        let nodes = [];
+        let row = 6, col = 6;
+        let data = [], data2 = [], startPoint = null, result = [];
+        let step = 0;
+        /*window.oncontextmenu = function (e) {
+            e.preventDefault();
+            let index = event.target.dataset.index;
+            if (index) {
+                let node = event.target;
+                index = index.split(',').map(i => +i);
+                if (startPoint) {
+
+                } else {
+                    startPoint = index;
+                    node.innerText = '*';
+                    node.classList.add('start');
+                    node.classList.remove('block');
+                    node.classList.remove('none');
+                }
+            }
+        };*/
+    
+        $row.onchange = function (e) {
+            row = +e.target.value;
+        };
+        $col.onchange = function (e) {
+            col = +e.target.value;
+        };
+        $createBtn.onclick = function (e) {
+            if (step !== 0) {
+                step = 1;
+                data = (new Array(row)).fill(1).map(() => new Array(col).fill(1));
+                nodes = initNodes(data).nodes;
+                
+                startPoint = null;
+                result = [];
+                return;
+            }
+            data = (new Array(row)).fill(1).map(() => new Array(col).fill(1));
+            nodes = initNodes(data).nodes;
+            step = 1;
+        };
+        $startBtn.onclick = function () {
+            if (step === 1 && startPoint) {
+                let res = formatData(data);
+                data2 = res.res;
+                let count = res.count;
+                let events = [];
+                foo(startPoint, count, [(startPoint[0] + 1) + ',' + (startPoint[1] + 1)]);
+                if (result.length === 0) {
+                    alert('没有找着路，请重新检查一下');
+                }
+                for (let i = 0; i < result.length; i++) {
+                    events.push(() => {
+                        let p = result[i].split(',').map(it => it - 1);
+                        let node = nodes[p[0]][p[1]];
+                        node.style.backgroundColor = getColor(i, result.length);
+                        node.innerText = i + 1;
+                    });
+                }
+                for (let i = 0; i < events.length; i++) {
+                    setTimeout(events[i], i * 200);
+                }
+            } else {
+                alert('请先生成并右键选择起点');
+            }
+        };
+
+
+        function foo(startPoint, count, points = [], last = 0) {
+
+            let [x, y] = startPoint;
+            let [x1, y1] = [x + 1, y + 1];
+            if ((data2[x1 - 1][y1] === 0 || points.includes((x1 - 1) + ',' + y1))
+                && (data2[x1 + 1][y1] === 0 || points.includes((x1 + 1) + ',' + y1))
+                && (data2[x1][y1 - 1] === 0 || points.includes(x1 + ',' + (y1 - 1)))
+                && (data2[x1][y1 + 1] === 0 || points.includes(x1 + ',' + (y1 + 1)))) {
+                if (points.length === count) {
+                    console.log('找到了', points);
+                    result = points;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            // 上
+            if (data2[x1 - 1][y1] === -1 && !points.includes((x1 - 1) + ',' + y1)) {
+                if (foo([x - 1, y], count, [...points, (x1 - 1) + ',' + y1])) return true;
+            }
+
+            // 下
+            if (data2[x1 + 1][y1] === -1 && !points.includes((x1 + 1) + ',' + y1)) {
+                if (foo([x + 1, y], count, [...points, (x1 + 1) + ',' + y1])) return true;
+            }
+
+            // 左
+            if (data2[x1][y1 - 1] === -1 && !points.includes(x1 + ',' + (y1 - 1))) {
+                if (foo([x, y - 1], count, [...points, x1 + ',' + (y1 - 1)])) return true;
+            }
+
+            // 右
+            if (data2[x1][y1 + 1] === -1 && !points.includes(x1 + ',' + (y1 + 1))) {
+                if (foo([x, y + 1], count, [...points, x1 + ',' + (y1 + 1)])) return true;
+            }
+
+        }
+
+        function initNodes(data) {
+            let nodes = [];
+            data.forEach((r, i) => {
+                let $row = document.createElement('div');
+                let c = r.map((item, j) => {
+                    let $div = document.createElement('div');
+                    $div.className = 'item';
+                    $div.innerText = item;
+                    $div.dataset.index = [i, j];
+                    $div.classList.add(item ? 'block' : 'none')
+                    $row.append($div);
+                    return $div;
+                });
+                nodes.push(c);
+                $box.append($row);
+            });
+            $box.onclick = function (event) {
+                console.log(event);
+
+                let index = event.target.dataset.index;
+                if (index) {
+                    let node = event.target;
+                    index = index.split(',').map(i => +i);
+                    if (node.innerText === '1') {
+                        node.innerText = 0;
+                        node.classList.remove('block');
+                        node.classList.add('none');
+                        data[index[0]][index[1]] = 0;
+                    } else {
+                        if (node.innerText === '*') {
+                            node.classList.remove('start');
+                        }
+                        node.innerText = 1;
+                        node.classList.remove('none');
+                        node.classList.add('block');
+                        data[index[0]][index[1]] = 1;
+                    }
+                }
+            };
+            $box.ondblclick = function (event) {
+                let index = event.target.dataset.index;
+                if (index) {
+                    let node = event.target;
+                    index = index.split(',').map(i => +i);
+                    startPoint = index;
+                    node.innerText = '*';
+                    node.classList.add('start');
+                    node.classList.remove('block');
+                    node.classList.remove('none');
+                    /*if (startPoint) {
+                        
+                    } else {
+                        startPoint = index;
+                        node.innerText = '*';
+                        node.classList.add('start');
+                        node.classList.remove('block');
+                        node.classList.remove('none');
+                    }*/
+                }
+            };
+            
+            return { nodes };
+        }
+
+        function formatData(data) {
+            let res = [];
+            const r = data.length,
+                c = data[0].length;
+            data[startPoint[0]][startPoint[1]] = 1;
+            let count = 0;
+            res.push((new Array(c + 2).fill(0)));
+            data.forEach(r => {
+                count += r.reduce((i1, i2) => i1 + i2);
+                let r2 = Array.from(r).map(i => -i);
+                r2.unshift(0);
+                r2.push(0);
+                res.push(r2);
+            });
+            res.push((new Array(c + 2).fill(0)));
+            res[startPoint[0] + 1][startPoint[1] + 1] = count;
+            return { res, count };
+        }
+
+        function getColor(i, n) {
+            return `hsl(${i / n * 360},100%,50%)`;
+        }
+    </script>
+</body>
+
+</html>
